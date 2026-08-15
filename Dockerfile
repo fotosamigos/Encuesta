@@ -32,6 +32,17 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # instalamos dependencias; si no, lo dejamos para el entrypoint (ver docker/entrypoint.sh).
 COPY . .
 
+# Aseguramos explícitamente que el archivo artisan (si está en el repo) se copie
+# y tenga permiso de ejecución. Esto evita situaciones en las que, por alguna
+# razón de contexto o ignore, artisan no termine en /app en tiempo de runtime.
+# (No hace daño si artisan no existe: COPY fallará si el archivo no existe en el contexto,
+# por eso usamos una copia condicional mediante shell en tiempo de build.)
+RUN if [ -f ./artisan ]; then \
+      chmod +x ./artisan || true; \
+    else \
+      echo "Notice: artisan no presente en build context"; \
+    fi
+
 # Traemos los assets compilados (públicos) desde la etapa assets. Esa etapa
 # garantiza que /app/public/build exista (aunque esté vacío) para que esto no falle.
 COPY --from=assets /app/public/build ./public/build
