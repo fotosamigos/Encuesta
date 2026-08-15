@@ -1,0 +1,48 @@
+name: Verificación pre-deploy
+
+# Corre en cada push/PR a main, ANTES de que Railway intente construir.
+# Así te enteras de errores de PHP/composer/Docker en 2 minutos en vez
+# de esperar el build fallido en Railway.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  composer-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, pdo_mysql, zip, gd, bcmath, exif, pcntl
+
+      - name: Validar composer.json / composer.lock
+        run: composer validate --no-check-publish
+
+      - name: Instalar dependencias (detecta incompatibilidades de versión de PHP aquí, no en Railway)
+        run: composer install --no-dev --prefer-dist --no-interaction
+
+      - name: Verificar que APP_KEY esté configurada como secret
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+        run: |
+          if [ -z "$APP_KEY" ]; then
+            echo "❌ Falta el secret APP_KEY en este repositorio (Settings → Secrets → Actions)."
+            echo "   Esto NO bloquea Railway, pero te avisa aquí antes de que se te olvide allá."
+            exit 1
+          fi
+          echo "✅ APP_KEY configurada."
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: composer-check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir la imagen Docker (mismo Dockerfile que usa Railway)
+        run: docker build -t encuestas-app:ci .
