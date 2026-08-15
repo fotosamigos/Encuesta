@@ -12,6 +12,11 @@ use App\Http\Controllers\Public\SurveyController as PublicSurveyController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
+// Healthcheck endpoint (no DB, no middleware) — Railway suele pedir /up
+Route::get('/up', function () {
+    return response()->json(['status' => 'up'], 200);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Público (persona natural, sin cuenta)
