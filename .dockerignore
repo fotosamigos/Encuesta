@@ -10,7 +10,8 @@ storage/framework/views/*
 tests
 .phpunit.result.cache
 Dockerfile
-docker
+docker/*
+!docker/entrypoint.sh
 railway.json
 README.md
 README-RAILWAY.md
